@@ -1,0 +1,80 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import path from 'path';
+import dotenv from 'dotenv';
+
+// Import routes
+import authRoutes from './routes/auth';
+import usersRoutes from './routes/users';
+import sessionsRoutes from './routes/sessions';
+import notesRoutes from './routes/notes';
+import complaintsRoutes from './routes/complaints';
+import callsRoutes from './routes/calls';
+import adminRoutes from './routes/admin';
+
+// Import middleware
+import { errorHandler } from './middleware/errorHandler';
+import { notFound } from './middleware/notFound';
+
+// Load environment variables
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 60772;
+
+// Security middleware
+app.use(helmet());
+
+// CORS configuration
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
+// Logging middleware
+app.use(morgan('combined'));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Static files
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/public', express.static(path.join(__dirname, '../public')));
+
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/sessions', sessionsRoutes);
+app.use('/api/notes', notesRoutes);
+app.use('/api/complaints', complaintsRoutes);
+app.use('/api/calls', callsRoutes);
+app.use('/api/admin', adminRoutes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 200,
+    message: 'Server is running',
+    data: {
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    }
+  });
+});
+
+// Error handling middleware
+app.use(notFound);
+app.use(errorHandler);
+
+// Start server
+app.listen(parseInt(PORT.toString()), '0.0.0.0', () => {
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+export default app;
