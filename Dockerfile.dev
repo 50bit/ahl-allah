@@ -1,0 +1,30 @@
+# Development Dockerfile
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Ensure we use the public npm registry and speed up install
+ENV NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
+
+# Install all dependencies (including dev dependencies) with safer flags
+# Fallback to npm install if npm ci cannot run (e.g., lockfile mismatch)
+RUN npm ci --no-audit --no-fund --registry=https://registry.npmjs.org/ || \
+    npm install --no-audit --no-fund --registry=https://registry.npmjs.org/
+
+# Copy source code
+COPY . .
+
+# Create uploads directory
+RUN mkdir -p uploads
+
+# Expose port
+EXPOSE 60772
+
+# Start the application in development mode
+CMD ["npm", "run", "dev"]
+
+

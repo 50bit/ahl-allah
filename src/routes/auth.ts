@@ -1,11 +1,13 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import passport from '../config/passport';
 import { User, NormalUser, MohafezUser } from '../models';
 import { generateToken } from '../config/jwt';
 import { sendSuccess, sendError } from '../utils/response';
 import { validateEmail, validatePassword, validateRequired } from '../utils/validation';
 import { UserRole, EjazaEnum, Language, AgeGroup, HefzMethod } from '../types';
 import { sendEmail } from '../config/email';
+import { handleOAuthCallback, handleOAuthSuccess, handleOAuthFailure, checkNewUser } from '../middleware/oauth';
 
 const router = Router();
 
@@ -342,6 +344,148 @@ router.post('/reset-password', validateRequired(['email', 'otp', 'newPassword'])
   } catch (error) {
     console.error('Reset password error:', error);
     sendError(res, 500, 'Failed to reset password');
+  }
+});
+
+// Google OAuth routes
+router.get('/google', passport.authenticate('google', {
+  scope: ['profile', 'email']
+}));
+
+router.get('/google/callback', 
+  passport.authenticate('google', { failureRedirect: '/auth/error' }),
+  handleOAuthCallback('google')
+);
+
+// Apple OAuth routes
+router.get('/apple', passport.authenticate('apple'));
+
+router.post('/apple/callback', 
+  passport.authenticate('apple', { failureRedirect: '/auth/error' }),
+  handleOAuthCallback('apple')
+);
+
+// OAuth success/failure handlers
+router.get('/success', handleOAuthSuccess('oauth'));
+router.get('/error', handleOAuthFailure);
+
+// Complete OAuth user profile
+router.post('/complete-profile', validateRequired(['country', 'birthyear', 'gender']), async (req: Request, res: Response) => {
+  try {
+    const { country, city, birthyear, gender, ageGroup, levelAtQuran, numberPerWeek, timeForEverytime, language, methodForHefz } = req.body;
+    const userId = req.body.userId; // This should come from the authenticated user
+
+    if (!userId) {
+      return sendError(res, 400, 'User ID is required');
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return sendError(res, 404, 'User not found');
+    }
+
+    // Calculate age
+    const currentYear = new Date().getFullYear();
+    const age = currentYear - birthyear;
+
+    // Update user profile
+    await user.update({
+      country,
+      city,
+      birthyear,
+      age,
+      gender
+    });
+
+    // Create normal user profile if it doesn't exist
+    let normalUser = await NormalUser.findByPk(user.normalUserId);
+    if (!normalUser) {
+      normalUser = await NormalUser.create({
+        availableMinutes: 0,
+        ageGroup: ageGroup || AgeGroup.ADULT,
+        levelAtQuran: levelAtQuran || 1,
+        numberPerWeek: numberPerWeek || 1,
+        timeForEverytime: timeForEverytime || 30,
+        language: language || Language.ARABIC,
+        methodForHefz: methodForHefz || HefzMethod.VOICE,
+        isPaid: false,
+        isFirstTime: true
+      });
+
+      await user.update({ normalUserId: normalUser.normalUserId });
+    }
+
+    // Generate new token with updated user info
+    const token = generateToken({
+      userId: user.id,
+      email: user.email,
+      roleId: user.roleId
+    });
+
+    sendSuccess(res, 'Profile completed successfully', {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        roleId: user.roleId,
+        provider: user.provider,
+        avatar: user.avatar,
+        normalUser
+      }
+    });
+  } catch (error) {
+    console.error('Complete profile error:', error);
+    sendError(res, 500, 'Failed to complete profile');
+  }
+});
+
+// Link OAuth account to existing account
+router.post('/link-oauth', validateRequired(['email', 'password', 'provider', 'providerId']), async (req: Request, res: Response) => {
+  try {
+    const { email, password, provider, providerId, avatar } = req.body;
+
+    // Find existing user
+    const user = await User.findOne({ where: { email: email.toLowerCase() } });
+    if (!user) {
+      return sendError(res, 404, 'User not found');
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password!);
+    if (!isPasswordValid) {
+      return sendError(res, 401, 'Invalid password');
+    }
+
+    // Update user with OAuth info
+    await user.update({
+      provider,
+      providerId,
+      avatar,
+      isEmailVerified: true
+    });
+
+    // Generate token
+    const token = generateToken({
+      userId: user.id,
+      email: user.email,
+      roleId: user.roleId
+    });
+
+    sendSuccess(res, 'OAuth account linked successfully', {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        roleId: user.roleId,
+        provider: user.provider,
+        avatar: user.avatar
+      }
+    });
+  } catch (error) {
+    console.error('Link OAuth error:', error);
+    sendError(res, 500, 'Failed to link OAuth account');
   }
 });
 

@@ -18,7 +18,7 @@ This is a Node.js/TypeScript conversion of the original .NET Ahl Allah Quran mem
 - **Runtime**: Node.js
 - **Language**: TypeScript
 - **Framework**: Express.js
-- **Database**: SQL Server with Sequelize ORM
+- **Database**: PostgreSQL with Sequelize ORM
 - **Authentication**: JWT (JSON Web Tokens)
 - **Email**: Nodemailer
 - **File Upload**: Multer
@@ -27,10 +27,41 @@ This is a Node.js/TypeScript conversion of the original .NET Ahl Allah Quran mem
 ## Prerequisites
 
 - Node.js (>= 16.0.0)
-- SQL Server database
+- PostgreSQL database
 - SMTP email service (Gmail recommended)
 
 ## Installation
+
+### Option 1: Docker (Recommended)
+
+The easiest way to run the application is using Docker and Docker Compose:
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd ahl-allah-nodejs
+```
+
+2. Start the application with Docker:
+```bash
+# For production
+sudo docker compose up -d
+
+# For development (with hot reload)
+sudo docker compose -f docker-compose.dev.yml up
+```
+
+3. Run database migrations:
+```bash
+# Wait for the database to be ready, then run migrations
+sudo docker compose exec app npm run migrate:prod
+```
+
+4. Access the application:
+- API: http://localhost:60772
+- Database: localhost:5432
+
+### Option 2: Manual Installation
 
 1. Clone the repository:
 ```bash
@@ -48,13 +79,19 @@ npm install
 cp env.example .env
 ```
 
-4. Configure environment variables in `.env`:
+4. Set up PostgreSQL database:
+```bash
+# Run the database setup script
+./scripts/setup-db.sh
+```
+
+5. Configure environment variables in `.env`:
 ```env
-# Database Configuration
-DB_HOST=your-database-host
-DB_PORT=1433
-DB_NAME=HefzQuranDB
-DB_USER=your-username
+# Database Configuration (PostgreSQL)
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=ahl_allah_db
+DB_USER=postgres
 DB_PASSWORD=your-password
 
 # JWT Configuration
@@ -79,12 +116,17 @@ UPLOAD_PATH=./uploads
 MAX_FILE_SIZE=5242880
 ```
 
-5. Build the project:
+6. Run database migration:
+```bash
+npm run migrate
+```
+
+7. Build the project:
 ```bash
 npm run build
 ```
 
-6. Start the server:
+8. Start the server:
 ```bash
 npm start
 ```
@@ -212,6 +254,102 @@ src/
 ├── utils/           # Utility functions
 ├── app.ts           # Express app configuration
 └── server.ts        # Server entry point
+```
+
+## Docker Deployment
+
+### Quick Start with Docker
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd ahl-allah-nodejs
+
+# Start the application (production)
+sudo docker compose up -d
+
+# Or start in development mode (with hot reload)
+sudo docker compose -f docker-compose.dev.yml up
+
+# Run database migrations
+sudo docker compose exec app npm run migrate:prod
+
+# View logs
+sudo docker compose logs -f
+
+# Stop the application
+sudo docker compose down
+```
+
+### Docker Commands
+
+```bash
+# Build the application
+npm run docker:build
+
+# Start in production mode
+npm run docker:up
+
+# Start in development mode
+npm run docker:dev
+
+# Stop the application
+npm run docker:down
+
+# View logs
+npm run docker:logs
+
+# Run migrations
+npm run docker:migrate
+```
+
+### Docker Services
+
+- **app**: Node.js application (port 60772)
+- **postgres**: PostgreSQL database (port 5432)
+
+### Environment Variables
+
+The Docker setup uses the following default environment variables:
+- Database: `postgres:password@postgres:5432/ahl_allah_db`
+- JWT Secret: Pre-configured for development
+- Email: Uses Gmail SMTP (configure in docker-compose.yml)
+
+### Volumes
+
+- `postgres_data`: Persistent PostgreSQL data
+- `./uploads:/app/uploads`: File uploads directory
+
+## PostgreSQL Migration
+
+This application has been migrated from SQL Server to PostgreSQL. All models and functionality remain the same.
+
+### Migration Benefits
+- **Open Source**: PostgreSQL is completely open source
+- **Better Performance**: Optimized for read-heavy workloads
+- **JSON Support**: Native JSON data type support
+- **Cross-Platform**: Works on all major operating systems
+- **Cost Effective**: No licensing fees
+
+### Migration Files
+- `POSTGRESQL_MIGRATION_GUIDE.md` - Detailed migration guide
+- `scripts/setup-db.sh` - Automated database setup script
+- `scripts/setup-postgresql.sql` - SQL setup script
+- `src/config/migrate.ts` - Migration runner
+
+### Quick Migration Commands
+```bash
+# Set up PostgreSQL database
+./scripts/setup-db.sh
+
+# Install dependencies
+npm install
+
+# Run migration
+npm run migrate
+
+# Start application
+npm run dev
 ```
 
 ## Contributing

@@ -5,13 +5,13 @@ import { UserRole } from '../types';
 export interface UserAttributes {
   id: string;
   email: string;
-  password: string;
+  password?: string; // Optional for OAuth users
   name: string;
   country: string;
   city?: string;
-  birthyear: number;
-  age: number;
-  gender: string;
+  birthyear?: number; // Optional for OAuth users
+  age?: number; // Optional for OAuth users
+  gender?: string; // Optional for OAuth users
   roleId: UserRole;
   creationDate: Date;
   lastActivityDate: Date;
@@ -19,6 +19,11 @@ export interface UserAttributes {
   otpExpirationTime?: Date;
   normalUserId?: number;
   mohafezId?: number;
+  // OAuth fields
+  provider?: string; // 'google', 'apple', 'local'
+  providerId?: string; // OAuth provider's user ID
+  avatar?: string; // Profile picture URL
+  isEmailVerified?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -28,13 +33,13 @@ export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: string;
   public email!: string;
-  public password!: string;
+  public password?: string;
   public name!: string;
   public country!: string;
   public city?: string;
-  public birthyear!: number;
-  public age!: number;
-  public gender!: string;
+  public birthyear?: number;
+  public age?: number;
+  public gender?: string;
   public roleId!: UserRole;
   public creationDate!: Date;
   public lastActivityDate!: Date;
@@ -42,6 +47,11 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public otpExpirationTime?: Date;
   public normalUserId?: number;
   public mohafezId?: number;
+  // OAuth fields
+  public provider?: string;
+  public providerId?: string;
+  public avatar?: string;
+  public isEmailVerified?: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -67,7 +77,7 @@ User.init(
     },
     password: {
       type: DataTypes.STRING(256),
-      allowNull: false
+      allowNull: true // Optional for OAuth users
     },
     name: {
       type: DataTypes.STRING(100),
@@ -83,15 +93,15 @@ User.init(
     },
     birthyear: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      allowNull: true // Optional for OAuth users
     },
     age: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      allowNull: true // Optional for OAuth users
     },
     gender: {
       type: DataTypes.STRING(100),
-      allowNull: false
+      allowNull: true // Optional for OAuth users
     },
     roleId: {
       type: DataTypes.INTEGER,
@@ -131,6 +141,25 @@ User.init(
         model: 'MohafezUsers',
         key: 'mohafezId'
       }
+    },
+    // OAuth fields
+    provider: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      defaultValue: 'local'
+    },
+    providerId: {
+      type: DataTypes.STRING(256),
+      allowNull: true
+    },
+    avatar: {
+      type: DataTypes.STRING(500),
+      allowNull: true
+    },
+    isEmailVerified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
     }
   },
   {

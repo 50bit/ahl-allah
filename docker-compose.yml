@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ahl-allah-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ahl_allah_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/setup-postgresql.sql:/docker-entrypoint-initdb.d/setup.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Node.js Application
+  app:
+    build: .
+    container_name: ahl-allah-app
+    restart: unless-stopped
+    ports:
+      - "60772:60772"
+    environment:
+      # Database Configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ahl_allah_db
+      DB_USER: postgres
+      DB_PASSWORD: password
+      
+      # JWT Configuration
+      JWT_SECRET: ByYM000OLlMQG6VVVp1OH7Xzyr7gHuw1qvUC5dcGt3SNM
+      JWT_EXPIRES_IN: 7d
+      JWT_ISSUER: http://localhost:60772
+      JWT_AUDIENCE: http://localhost:4200
+      
+      # Email Configuration
+      EMAIL_FROM: a99.bdr@gmail.com
+      EMAIL_SMTP_SERVER: smtp.gmail.com
+      EMAIL_PORT: 465
+      EMAIL_USERNAME: a99.bdr@gmail.com
+      EMAIL_PASSWORD: acxv mzkd ipin wmyn
+      
+      # Server Configuration
+      PORT: 60772
+      NODE_ENV: production
+      SESSION_SECRET: your-session-secret-key
+      
+      # Frontend Configuration
+      FRONTEND_URL: http://localhost:4200
+      
+      # OAuth Configuration (Add your actual OAuth credentials)
+      GOOGLE_CLIENT_ID: your-google-client-id
+      GOOGLE_CLIENT_SECRET: your-google-client-secret
+      GOOGLE_CALLBACK_URL: http://localhost:60772/api/auth/google/callback
+      
+      APPLE_CLIENT_ID: your-apple-client-id
+      APPLE_TEAM_ID: your-apple-team-id
+      APPLE_KEY_ID: your-apple-key-id
+      APPLE_PRIVATE_KEY: your-apple-private-key
+      APPLE_CALLBACK_URL: http://localhost:60772/api/auth/apple/callback
+      
+      # File Upload
+      UPLOAD_PATH: ./uploads
+      MAX_FILE_SIZE: 5242880
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:60772/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_data:
+
