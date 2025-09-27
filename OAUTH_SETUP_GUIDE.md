@@ -181,7 +181,7 @@ Run the OAuth migration to add the necessary fields:
 
 ```bash
 # Using Docker
-sudo docker compose exec postgres psql -U postgres -d ahl_allah_db -f /docker-entrypoint-initdb.d/oauth-migration.sql
+docker compose exec postgres psql -U postgres -d ahl_allah_db -f /docker-entrypoint-initdb.d/oauth-migration.sql
 
 # Or manually
 psql -U postgres -d ahl_allah_db -f src/config/oauth-migration.sql
@@ -196,7 +196,7 @@ psql -U postgres -d ahl_allah_db -f src/config/oauth-migration.sql
 npm run dev
 
 # Or with Docker
-sudo docker compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up
 ```
 
 ### 2. Test OAuth Flow
@@ -252,7 +252,7 @@ APPLE_CALLBACK_URL=https://yourdomain.com/api/auth/apple/callback
 ### 3. Docker Deployment
 
 ```bash
-sudo docker compose up -d
+docker compose up -d
 ```
 
 ## Support

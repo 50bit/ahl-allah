@@ -45,16 +45,16 @@ cd ahl-allah-nodejs
 2. Start the application with Docker:
 ```bash
 # For production
-sudo docker compose up -d
+docker compose up -d
 
 # For development (with hot reload)
-sudo docker compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up
 ```
 
 3. Run database migrations:
 ```bash
 # Wait for the database to be ready, then run migrations
-sudo docker compose exec app npm run migrate:prod
+docker compose exec app npm run migrate:prod
 ```
 
 4. Access the application:
@@ -266,19 +266,19 @@ git clone <repository-url>
 cd ahl-allah-nodejs
 
 # Start the application (production)
-sudo docker compose up -d
+docker compose up -d
 
 # Or start in development mode (with hot reload)
-sudo docker compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up
 
 # Run database migrations
-sudo docker compose exec app npm run migrate:prod
+docker compose exec app npm run migrate:prod
 
 # View logs
-sudo docker compose logs -f
+docker compose logs -f
 
 # Stop the application
-sudo docker compose down
+docker compose down
 ```
 
 ### Docker Commands
