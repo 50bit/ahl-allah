@@ -18,6 +18,7 @@ export interface MohafezUserAttributes {
   whatsappPhoneNumber?: string;
   getPaid: boolean;
   schedule?: string;
+  organizationId?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -40,6 +41,7 @@ export class MohafezUser extends Model<MohafezUserAttributes, MohafezUserCreatio
   public whatsappPhoneNumber?: string;
   public getPaid!: boolean;
   public schedule?: string;
+  public organizationId?: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -117,6 +119,14 @@ MohafezUser.init(
     schedule: {
       type: DataTypes.TEXT,
       allowNull: true
+    },
+    organizationId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'Organizations',
+        key: 'organizationId'
+      }
     }
   },
   {
@@ -132,6 +142,9 @@ MohafezUser.init(
       },
       {
         fields: ['myEjazaEnum']
+      },
+      {
+        fields: ['organizationId']
       }
     ]
   }
