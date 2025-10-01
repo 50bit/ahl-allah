@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -7,6 +8,7 @@ export const JWT_SECRET = process.env.JWT_SECRET || 'ByYM000OLlMQG6VVVp1OH7Xzyr7
 export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 export const JWT_ISSUER = process.env.JWT_ISSUER || 'http://localhost:60772';
 export const JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'http://localhost:4200';
+export const REFRESH_TOKEN_EXPIRES_IN_DAYS = parseInt(process.env.REFRESH_TOKEN_EXPIRES_IN_DAYS || '30');
 
 export interface JwtPayload {
   userId: string;
@@ -30,3 +32,11 @@ export const verifyToken = (token: string): JwtPayload => {
     audience: JWT_AUDIENCE
   }) as JwtPayload;
 };
+<<<<<<< Current (Your changes)
+=======
+
+export const generateRefreshToken = (): string => {
+  // Use crypto random string as opaque refresh token
+  return crypto.randomBytes(48).toString('hex');
+};
+>>>>>>> Incoming (Background Agent changes)

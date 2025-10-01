@@ -17,6 +17,8 @@ export interface UserAttributes {
   lastActivityDate: Date;
   resetPasswordOTP?: string;
   otpExpirationTime?: Date;
+  phone?: string;
+  phoneVerified?: boolean;
   normalUserId?: number;
   mohafezId?: number;
   // OAuth fields
@@ -45,6 +47,8 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public lastActivityDate!: Date;
   public resetPasswordOTP?: string;
   public otpExpirationTime?: Date;
+  public phone?: string;
+  public phoneVerified?: boolean;
   public normalUserId?: number;
   public mohafezId?: number;
   // OAuth fields
@@ -125,6 +129,16 @@ User.init(
     otpExpirationTime: {
       type: DataTypes.DATE,
       allowNull: true
+    },
+    phone: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      unique: true
+    },
+    phoneVerified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
     },
     normalUserId: {
       type: DataTypes.INTEGER,
