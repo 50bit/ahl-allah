@@ -30,6 +30,17 @@ export enum UserRole {
   NOT_ACCEPTED_MOHAFEZ = 10
 }
 
+// Organization roles (within an organization scope)
+export enum OrgRole {
+  ADMIN = 1,
+  MEMBER = 2
+}
+
+export interface OrganizationClaims {
+  organizationId: number;
+  orgRole: OrgRole;
+}
+
 // Age Groups
 export enum AgeGroup {
   CHILD = 1,

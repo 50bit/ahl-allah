@@ -14,6 +14,7 @@ import notesRoutes from './routes/notes';
 import complaintsRoutes from './routes/complaints';
 import callsRoutes from './routes/calls';
 import adminRoutes from './routes/admin';
+import organizationsRoutes from './routes/organizations';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -71,6 +72,7 @@ app.use('/api/notes', notesRoutes);
 app.use('/api/complaints', complaintsRoutes);
 app.use('/api/calls', callsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/organizations', organizationsRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

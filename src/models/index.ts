@@ -6,6 +6,8 @@ import { Session } from './Session';
 import { Note } from './Note';
 import { Complaint } from './Complaint';
 import { Call } from './Call';
+import { Organization } from './Organization';
+import { OrganizationMember } from './OrganizationMember';
 
 // Define associations
 User.belongsTo(NormalUser, {
@@ -63,6 +65,26 @@ Call.belongsTo(MohafezUser, {
   as: 'Mohafez'
 });
 
+// Organization associations
+Organization.hasMany(OrganizationMember, {
+  foreignKey: 'organizationId',
+  as: 'Members'
+});
+
+OrganizationMember.belongsTo(Organization, {
+  foreignKey: 'organizationId',
+  as: 'Organization'
+});
+
+OrganizationMember.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'User'
+});
+
+// If MohafezUser belongs to an organization, define relation once field is added
+// Organization.hasMany(MohafezUser, { foreignKey: 'organizationId', as: 'MohafezUsers' });
+// MohafezUser.belongsTo(Organization, { foreignKey: 'organizationId', as: 'Organization' });
+
 // Export models
 export {
   sequelize,
@@ -72,7 +94,9 @@ export {
   Session,
   Note,
   Complaint,
-  Call
+  Call,
+  Organization,
+  OrganizationMember
 };
 
 // Initialize database connection
