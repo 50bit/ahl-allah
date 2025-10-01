@@ -20,6 +20,7 @@ import organizationsRoutes from './routes/organizations';
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
 import passport from './config/passport';
+import { buildOpenApiSpec, swaggerHtmlPage } from './config/swagger';
 
 // Load environment variables
 dotenv.config();
@@ -74,8 +75,29 @@ app.use('/api/calls', callsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/organizations', organizationsRoutes);
 
+// Swagger docs
+const openApiSpec = buildOpenApiSpec(app, [
+	{ basePath: '/api/auth', router: authRoutes },
+	{ basePath: '/api/users', router: usersRoutes },
+	{ basePath: '/api/sessions', router: sessionsRoutes },
+	{ basePath: '/api/notes', router: notesRoutes },
+	{ basePath: '/api/complaints', router: complaintsRoutes },
+	{ basePath: '/api/calls', router: callsRoutes },
+	{ basePath: '/api/admin', router: adminRoutes },
+	{ basePath: '/api/organizations', router: organizationsRoutes }
+]);
+
+app.get('/docs.json', (_req: any, res: any) => {
+	return res.json(openApiSpec);
+});
+
+app.get('/docs', (_req: any, res: any) => {
+	res.setHeader('Content-Type', 'text/html; charset=utf-8');
+	return res.send(swaggerHtmlPage('/docs.json', 'API Documentation'));
+});
+
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (req: any, res: any) => {
   res.status(200).json({
     status: 200,
     message: 'Server is running',
