@@ -126,7 +126,9 @@ MohafezUser.init(
       references: {
         model: 'Organizations',
         key: 'organizationId'
-      }
+      },
+      onDelete: 'SET NULL',
+      onUpdate: 'CASCADE'
     }
   },
   {
