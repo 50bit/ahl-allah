@@ -82,8 +82,18 @@ OrganizationMember.belongsTo(User, {
 });
 
 // If MohafezUser belongs to an organization, define relation once field is added
-Organization.hasMany(MohafezUser, { foreignKey: 'organizationId', as: 'MohafezUsers' });
-MohafezUser.belongsTo(Organization, { foreignKey: 'organizationId', as: 'Organization' });
+Organization.hasMany(MohafezUser, {
+  foreignKey: { name: 'organizationId', allowNull: true },
+  as: 'MohafezUsers',
+  onDelete: 'SET NULL',
+  onUpdate: 'CASCADE'
+});
+MohafezUser.belongsTo(Organization, {
+  foreignKey: { name: 'organizationId', allowNull: true },
+  as: 'Organization',
+  onDelete: 'SET NULL',
+  onUpdate: 'CASCADE'
+});
 
 // Export models
 export {
