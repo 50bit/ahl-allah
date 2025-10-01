@@ -17,6 +17,16 @@ export const migrateToPostgreSQL = async () => {
     
     // Ensure MohafezUsers.organizationId is nullable and FK uses ON DELETE SET NULL / ON UPDATE CASCADE
     await sequelize.transaction(async (t) => {
+      // Ensure Users.phone and Users.phoneVerified exist and phone is unique
+      await sequelize.query(
+        'ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "phone" VARCHAR(20) UNIQUE;',
+        { transaction: t }
+      ).catch(() => {/* ignore */});
+      await sequelize.query(
+        'ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "phoneVerified" BOOLEAN NOT NULL DEFAULT FALSE;',
+        { transaction: t }
+      ).catch(() => {/* ignore */});
+
       // Make column nullable (if it was NOT NULL previously)
       await sequelize.query(
         'ALTER TABLE "MohafezUsers" ALTER COLUMN "organizationId" DROP NOT NULL;',

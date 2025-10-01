@@ -8,6 +8,8 @@ import { Complaint } from './Complaint';
 import { Call } from './Call';
 import { Organization } from './Organization';
 import { OrganizationMember } from './OrganizationMember';
+import { PhoneOtp } from './PhoneOtp';
+import { RefreshToken } from './RefreshToken';
 
 // Define associations
 User.belongsTo(NormalUser, {
@@ -106,7 +108,9 @@ export {
   Complaint,
   Call,
   Organization,
-  OrganizationMember
+  OrganizationMember,
+  PhoneOtp,
+  RefreshToken
 };
 
 // Initialize database connection

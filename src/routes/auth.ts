@@ -1,13 +1,17 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import passport from '../config/passport';
-import { User, NormalUser, MohafezUser } from '../models';
+import { User, NormalUser, MohafezUser, PhoneOtp, RefreshToken } from '../models';
 import { generateToken } from '../config/jwt';
+import { verifyToken } from '../config/jwt';
+import { generateRefreshToken, REFRESH_TOKEN_EXPIRES_IN_DAYS } from '../config/jwt';
 import { sendSuccess, sendError } from '../utils/response';
-import { validateEmail, validatePassword, validateRequired } from '../utils/validation';
+import { validateEmail, validatePassword, validateRequired, validatePhoneNumber } from '../utils/validation';
 import { UserRole, EjazaEnum, Language, AgeGroup, HefzMethod } from '../types';
 import { sendEmail } from '../config/email';
 import { handleOAuthCallback, handleOAuthSuccess, handleOAuthFailure, checkNewUser } from '../middleware/oauth';
+import { sendSms } from '../config/sms';
+import crypto from 'crypto';
 
 const router = Router();
 
@@ -490,3 +494,215 @@ router.post('/link-oauth', validateRequired(['email', 'password', 'provider', 'p
 });
 
 export default router;
+
+// ------------------------
+// Phone OTP Authentication
+// ------------------------
+
+const MAX_OTP_ATTEMPTS = 5;
+const MAX_OTP_RESENDS = 3;
+const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const RESEND_WINDOW_MS = 60 * 1000; // at least 60s between resends
+
+const hashOtp = (otp: string): string => {
+  return crypto.createHash('sha256').update(otp).digest('hex');
+};
+
+router.post('/phone/request-otp', validateRequired(['phone']), async (req: Request, res: Response) => {
+  try {
+    const { phone, purpose } = req.body as { phone: string; purpose?: 'login' | 'link' };
+    const normalizedPhone = phone.toString().trim();
+    if (!validatePhoneNumber(normalizedPhone)) {
+      return sendError(res, 400, 'Invalid phone number');
+    }
+
+    const effectivePurpose: 'login' | 'link' = purpose === 'link' ? 'link' : 'login';
+
+    if (effectivePurpose === 'link') {
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      if (!token) {
+        return sendError(res, 401, 'Authorization required for linking');
+      }
+      try {
+        verifyToken(token);
+      } catch {
+        return sendError(res, 401, 'Invalid token');
+      }
+    }
+
+    // Rate limit: check existing active OTP
+    const existing = await PhoneOtp.findOne({ where: { phone: normalizedPhone, consumed: false }, order: [['createdAt', 'DESC']] });
+    if (existing) {
+      const since = Date.now() - new Date(existing.lastSentAt).getTime();
+      if (existing.resendCount >= MAX_OTP_RESENDS) {
+        return sendError(res, 429, 'Resend limit reached');
+      }
+      if (since < RESEND_WINDOW_MS) {
+        return sendError(res, 429, 'Please wait before requesting another OTP');
+      }
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpHash = hashOtp(otp);
+    const expiresAt = new Date(Date.now() + OTP_TTL_MS);
+
+    if (existing && existing.expiresAt > new Date() && existing.purpose === effectivePurpose) {
+      await existing.update({
+        otpHash,
+        expiresAt,
+        resendCount: existing.resendCount + 1,
+        lastSentAt: new Date()
+      });
+    } else {
+      await PhoneOtp.create({
+        phone: normalizedPhone,
+        otpHash,
+        purpose: effectivePurpose,
+        expiresAt,
+        attemptsUsed: 0,
+        resendCount: 0,
+        lastSentAt: new Date(),
+        consumed: false
+      });
+    }
+
+    const sent = await sendSms(normalizedPhone, `Your verification code is ${otp}. It expires in 5 minutes.`);
+    if (!sent) {
+      return sendError(res, 500, 'Failed to send OTP');
+    }
+
+    return sendSuccess(res, 'OTP sent');
+  } catch (error) {
+    console.error('Request OTP error:', error);
+    return sendError(res, 500, 'Failed to request OTP');
+  }
+});
+
+router.post('/phone/verify-otp', validateRequired(['phone', 'otp']), async (req: Request, res: Response) => {
+  try {
+    const { phone, otp } = req.body as { phone: string; otp: string };
+    const normalizedPhone = phone.toString().trim();
+    if (!validatePhoneNumber(normalizedPhone)) {
+      return sendError(res, 400, 'Invalid phone number');
+    }
+
+    const record = await PhoneOtp.findOne({ where: { phone: normalizedPhone, consumed: false }, order: [['createdAt', 'DESC']] });
+    if (!record) {
+      return sendError(res, 400, 'No active OTP found');
+    }
+    if (new Date() > record.expiresAt) {
+      return sendError(res, 400, 'OTP expired');
+    }
+    if (record.attemptsUsed >= MAX_OTP_ATTEMPTS) {
+      return sendError(res, 429, 'Maximum verification attempts reached');
+    }
+
+    const providedHash = hashOtp(otp);
+    if (providedHash !== record.otpHash) {
+      await record.update({ attemptsUsed: record.attemptsUsed + 1 });
+      return sendError(res, 400, 'Invalid OTP');
+    }
+
+    // Mark consumed
+    await record.update({ consumed: true });
+
+    // Linking flow: attach phone to existing account
+    if (record.purpose === 'link') {
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      if (!token) {
+        return sendError(res, 401, 'Authorization required for linking');
+      }
+      let userId: string;
+      try {
+        const payload = verifyToken(token);
+        userId = payload.userId;
+      } catch {
+        return sendError(res, 401, 'Invalid token');
+      }
+      const user = await User.findByPk(userId);
+      if (!user) {
+        return sendError(res, 404, 'User not found');
+      }
+      // Enforce phone uniqueness across accounts
+      const phoneExists = await User.findOne({ where: { phone: normalizedPhone } });
+      if (phoneExists && phoneExists.id !== user.id) {
+        return sendError(res, 409, 'Phone already linked to another account');
+      }
+      await user.update({ phone: normalizedPhone, phoneVerified: true });
+
+      const accessToken = generateToken({ userId: user.id, email: user.email, roleId: user.roleId });
+      const refresh = generateRefreshToken();
+      const refreshHash = crypto.createHash('sha256').update(refresh).digest('hex');
+      const refreshExpires = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000);
+      await RefreshToken.create({ userId: user.id, tokenHash: refreshHash, expiresAt: refreshExpires });
+
+      return sendSuccess(res, 'Phone linked and authenticated', {
+        token: accessToken,
+        refreshToken: refresh,
+        user: { id: user.id, email: user.email, phone: user.phone, roleId: user.roleId }
+      });
+    }
+
+    // Login/registration via phone
+    let user = await User.findOne({ where: { phone: normalizedPhone } });
+    if (!user) {
+      // Create minimal account for phone-only login; can later link email/password or OAuth
+      user = await User.create({
+        email: `${normalizedPhone}@phone.local`,
+        name: 'Phone User',
+        country: 'Unknown',
+        roleId: UserRole.NORMAL,
+        creationDate: new Date(),
+        lastActivityDate: new Date(),
+        phone: normalizedPhone,
+        phoneVerified: true
+      } as any);
+    } else if (!user.phoneVerified) {
+      await user.update({ phoneVerified: true });
+    }
+
+    await user.update({ lastActivityDate: new Date() });
+
+    const token = generateToken({ userId: user.id, email: user.email, roleId: user.roleId });
+    const refresh = generateRefreshToken();
+    const refreshHash = crypto.createHash('sha256').update(refresh).digest('hex');
+    const refreshExpires = new Date(Date.now() + REFRESH_TOKEN_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000);
+    await RefreshToken.create({ userId: user.id, tokenHash: refreshHash, expiresAt: refreshExpires });
+
+    return sendSuccess(res, 'Authenticated with phone', {
+      token,
+      refreshToken: refresh,
+      user: { id: user.id, email: user.email, phone: user.phone, roleId: user.roleId }
+    });
+  } catch (error) {
+    console.error('Verify phone OTP error:', error);
+    return sendError(res, 500, 'Failed to verify OTP');
+  }
+});
+
+// Exchange refresh token for new access token
+router.post('/token/refresh', validateRequired(['refreshToken']), async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body as { refreshToken: string };
+    const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    const record = await RefreshToken.findOne({ where: { tokenHash: refreshHash, revoked: false } });
+    if (!record) {
+      return sendError(res, 401, 'Invalid refresh token');
+    }
+    if (new Date() > record.expiresAt) {
+      return sendError(res, 401, 'Refresh token expired');
+    }
+    const user = await User.findByPk(record.userId);
+    if (!user) {
+      return sendError(res, 404, 'User not found');
+    }
+    const newAccess = generateToken({ userId: user.id, email: user.email, roleId: user.roleId });
+    return sendSuccess(res, 'Token refreshed', { token: newAccess });
+  } catch (error) {
+    console.error('Refresh token error:', error);
+    return sendError(res, 500, 'Failed to refresh token');
+  }
+});
+
