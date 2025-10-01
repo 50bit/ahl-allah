@@ -29,7 +29,7 @@ router.post('/login', validateRequired(['email', 'password']), async (req: Reque
       ]
     });
 
-    if (!user) {
+    if (!user || !user.password) {
       return sendError(res, 401, 'Invalid credentials');
     }
 

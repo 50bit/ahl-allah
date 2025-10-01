@@ -72,10 +72,27 @@ export interface FileUpload {
 
 // Request types
 
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    userId: string;
-    email: string;
-    roleId: number;
-  };
+// export interface Request extends Request {
+//   user?: {
+//     userId: string;
+//     email: string;
+//     roleId: number;
+//     iat?: number;
+//     exp?: number;
+//   };
+// }
+
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        userId: string;
+        email: string;
+        roleId: number;
+        iat?: number;
+        exp?: number;
+      };
+    }
+  }
 }

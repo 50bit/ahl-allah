@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, JwtPayload } from '../config/jwt';
-import { AuthenticatedRequest } from '../types';
 
-export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+export const authenticateToken = (req: Request, res: Response, next: NextFunction): void => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -34,7 +33,7 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
 };
 
 export const requireRole = (roles: number[]) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({
         status: 401,
