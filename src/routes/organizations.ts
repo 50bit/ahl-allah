@@ -41,7 +41,8 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
         if (!exists) continue;
         await OrganizationMember.findOrCreate({
           where: { organizationId: org.organizationId, userId: u.userId },
-          defaults: { orgRole: u.orgRole ?? OrgRole.MEMBER }
+          // defaults: { orgRole: u.orgRole ?? OrgRole.MEMBER }
+          defaults: { organizationId: org.organizationId, userId: u.userId, orgRole: u.orgRole ?? OrgRole.MEMBER }
         });
       }
     }
@@ -117,7 +118,8 @@ router.put('/:organizationId', authenticateToken, async (req: Request, res: Resp
         if (!exists) continue;
         await OrganizationMember.findOrCreate({
           where: { organizationId, userId: u.userId },
-          defaults: { orgRole: u.orgRole ?? OrgRole.MEMBER }
+          // defaults: { orgRole: u.orgRole ?? OrgRole.MEMBER }
+          defaults: { organizationId, userId: u.userId, orgRole: u.orgRole ?? OrgRole.MEMBER }
         });
       }
     }

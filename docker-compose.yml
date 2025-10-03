@@ -4,7 +4,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: ahl-allah-postgres
+    container_name: ahl-allah-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ahl_allah_db
@@ -24,7 +24,7 @@ services:
   # Node.js Application
   app:
     build: .
-    container_name: ahl-allah-app
+    container_name: ahl-allah-server
     restart: unless-stopped
     ports:
       - "60772:60772"

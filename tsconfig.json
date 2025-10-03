@@ -21,7 +21,6 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node10", 
-    "ignoreDeprecations": "6.0",
     "baseUrl": "./src/",
     "paths": {
       "@/*": ["*"],
@@ -33,9 +32,9 @@
       "@/utils/*": ["utils/*"]
     },
     "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
+    "experimentalDecorators": true, 
     "emitDecoratorMetadata": true,
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "typeRoots": ["./src/types/express", "./node_modules/@types"]
   },
   "include": [
     "src/**/*"

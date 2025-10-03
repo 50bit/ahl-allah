@@ -1,2 +1,2 @@
 -- Write your own SQL object definition here, and it'll be included in your package.
-CREATE DATABASE hefzqurandb;
+CREATE DATABASE ahl_allah_db;

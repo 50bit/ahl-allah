@@ -6,6 +6,9 @@ import path from 'path';
 import dotenv from 'dotenv';
 import session from 'express-session';
 
+// Import types
+import './types/express';
+
 // Import routes
 import authRoutes from './routes/auth';
 import usersRoutes from './routes/users';
@@ -20,7 +23,9 @@ import organizationsRoutes from './routes/organizations';
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
 import passport from './config/passport';
-import { buildOpenApiSpec, swaggerHtmlPage } from './config/swagger';
+import { buildOpenApiSpec } from './config/swagger';
+import swaggerUi from 'swagger-ui-express';
+import swaggerJsDoc from 'swagger-jsdoc';
 
 // Load environment variables
 dotenv.config();
@@ -77,23 +82,20 @@ app.use('/api/organizations', organizationsRoutes);
 
 // Swagger docs
 const openApiSpec = buildOpenApiSpec(app, [
-	{ basePath: '/api/auth', router: authRoutes },
-	{ basePath: '/api/users', router: usersRoutes },
-	{ basePath: '/api/sessions', router: sessionsRoutes },
-	{ basePath: '/api/notes', router: notesRoutes },
-	{ basePath: '/api/complaints', router: complaintsRoutes },
-	{ basePath: '/api/calls', router: callsRoutes },
-	{ basePath: '/api/admin', router: adminRoutes },
-	{ basePath: '/api/organizations', router: organizationsRoutes }
+	{ basePath: '/api/auth', router: authRoutes, tags: ['Auth'] },
+	{ basePath: '/api/users', router: usersRoutes, tags: ['Users'] },
+	{ basePath: '/api/sessions', router: sessionsRoutes, tags: ['Sessions'] },
+	{ basePath: '/api/notes', router: notesRoutes, tags: ['Notes'] },
+	{ basePath: '/api/complaints', router: complaintsRoutes, tags: ['Complaints'] },
+	{ basePath: '/api/calls', router: callsRoutes, tags: ['Calls'] },
+	{ basePath: '/api/admin', router: adminRoutes, tags: ['Admin'] },
+	{ basePath: '/api/organizations', router: organizationsRoutes, tags: ['Organizations'] }
 ]);
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
 app.get('/docs.json', (_req: any, res: any) => {
 	return res.json(openApiSpec);
-});
-
-app.get('/docs', (_req: any, res: any) => {
-	res.setHeader('Content-Type', 'text/html; charset=utf-8');
-	return res.send(swaggerHtmlPage('/docs.json', 'API Documentation'));
 });
 
 // Health check endpoint
@@ -111,11 +113,5 @@ app.get('/health', (req, res) => {
 // Error handling middleware
 app.use(notFound);
 app.use(errorHandler);
-
-// Start server
-app.listen(parseInt(PORT.toString()), '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
 
 export default app;

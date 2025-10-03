@@ -4,6 +4,7 @@ type Router = any;
 type RouterMount = {
 	basePath: string;
 	router: Router;
+	tags: string[];
 };
 
 type OpenApiSpec = {
@@ -15,6 +16,22 @@ type OpenApiSpec = {
 	};
 	servers: Array<{ url: string }>;
 	paths: Record<string, any>;
+	components?: {
+		securitySchemes?: {
+			[key: string]: {
+				type: string;
+				scheme: string;
+				bearerFormat?: string;
+			};
+		};
+	};
+	security?: {
+		bearerAuth?: {
+			type: string;
+			scheme: string;
+			bearerFormat?: string;
+		}[];
+	}[];
 };
 
 function sanitizePath(path: unknown): string | null {
@@ -62,10 +79,24 @@ export function buildOpenApiSpec(app: Express, mounts: RouterMount[], options?: 
 			version: options?.version || '1.0.0'
 		},
 		servers: [{ url: '/' }],
-		paths: {}
+		paths: {},
+		components: {
+			securitySchemes: {
+				bearerAuth: {
+					type: 'http',
+					scheme: 'bearer',
+					bearerFormat: 'JWT'
+				}
+			}
+		},
+		security: [
+			{
+				bearerAuth: []
+			}
+		]
 	};
 
-	for (const { basePath, router } of mounts) {
+	for (const { basePath, router, tags } of mounts) {
 		const base = sanitizePath(basePath) || '/';
 		const eps = getRouterEndpoints(base, router);
 		for (const ep of eps) {
@@ -75,59 +106,13 @@ export function buildOpenApiSpec(app: Express, mounts: RouterMount[], options?: 
 					summary: `${method.toUpperCase()} ${ep.path}`,
 					responses: {
 						'200': { description: 'Successful response' }
-					}
+					},
+					tags
 				};
 			}
 		}
 	}
 
-	// Add health endpoint if present
-	if ((app as any)._router && (app as any)._router.stack) {
-		try {
-			const stack: any[] = (app as any)._router.stack || [];
-			for (const layer of stack) {
-				if (layer && layer.route && layer.route.path === '/health') {
-					if (!spec.paths['/health']) spec.paths['/health'] = {};
-					const methods = Object.keys(layer.route.methods || {}).filter((m) => (layer.route.methods || {})[m]);
-					for (const method of methods) {
-						spec.paths['/health'][method] = {
-							summary: `${method.toUpperCase()} /health`,
-							responses: { '200': { description: 'OK' } }
-						};
-					}
-				}
-			}
-		} catch {}
-	}
-
 	return spec;
 }
-
-export function swaggerHtmlPage(jsonUrl: string, pageTitle = 'API Docs'): string {
-	return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${pageTitle}</title>
-  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
-</head>
-<body>
-  <div id="swagger-ui"></div>
-  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-  <script>
-    window.addEventListener('load', function () {
-      const ui = SwaggerUIBundle({
-        url: '${jsonUrl}',
-        dom_id: '#swagger-ui',
-        presets: [SwaggerUIBundle.presets.apis],
-        layout: 'BaseLayout'
-      });
-      window.ui = ui;
-    });
-  </script>
-</body>
-</html>`;
-}
-
 

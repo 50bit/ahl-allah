@@ -492,10 +492,6 @@ router.post('/link-oauth', validateRequired(['email', 'password', 'provider', 'p
   }
 });
 
-export default router;
-<<<<<<< Current (Your changes)
-=======
-
 // ------------------------
 // Phone OTP Authentication
 // ------------------------
@@ -682,4 +678,4 @@ router.post('/token/refresh', validateRequired(['refreshToken']), async (req, re
   }
 });
 
->>>>>>> Incoming (Background Agent changes)
+export default router;

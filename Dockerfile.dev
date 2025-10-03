@@ -7,13 +7,15 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Ensure we use the public npm registry and speed up install
-ENV NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
+# Explicitly set npm registry to global registry
+RUN npm cache clean --force
+RUN rm -f ~/.npmrc /usr/local/etc/npmrc 2>/dev/null || true
+RUN npm config delete registry 2>/dev/null || true
+RUN npm config set registry https://registry.npmjs.org/
 
-# Install all dependencies (including dev dependencies) with safer flags
-# Fallback to npm install if npm ci cannot run (e.g., lockfile mismatch)
-RUN npm ci --no-audit --no-fund --registry=https://registry.npmjs.org/ || \
-    npm install --no-audit --no-fund --registry=https://registry.npmjs.org/
+# Install dependencies
+RUN npm install -g typescript
+RUN npm install
 
 # Copy source code
 COPY . .

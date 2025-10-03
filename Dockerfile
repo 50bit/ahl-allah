@@ -7,8 +7,15 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+# Explicitly set npm registry to global registry
+RUN npm cache clean --force
+RUN rm -f ~/.npmrc /usr/local/etc/npmrc 2>/dev/null || true
+RUN npm config delete registry 2>/dev/null || true
+RUN npm config set registry https://registry.npmjs.org/
+
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install -g typescript
+RUN npm install
 
 # Copy source code
 COPY . .

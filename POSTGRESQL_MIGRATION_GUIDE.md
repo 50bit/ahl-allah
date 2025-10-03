@@ -155,8 +155,8 @@ If you have existing data in SQL Server that you want to migrate to PostgreSQL, 
 1. **Export from SQL Server:**
    ```sql
    -- Export each table to CSV
-   BCP "SELECT * FROM hefzqurandb.dbo.Users" queryout "users.csv" -c -t"," -r"\n" -S your_server -T
-   BCP "SELECT * FROM hefzqurandb.dbo.MohafezUsers" queryout "mohafez_users.csv" -c -t"," -r"\n" -S your_server -T
+   BCP "SELECT * FROM ahl_allah_db.dbo.Users" queryout "users.csv" -c -t"," -r"\n" -S your_server -T
+   BCP "SELECT * FROM ahl_allah_db.dbo.MohafezUsers" queryout "mohafez_users.csv" -c -t"," -r"\n" -S your_server -T
    -- Repeat for all tables
    ```
 

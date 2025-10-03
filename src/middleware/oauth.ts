@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import passport from '../config/passport';
 import { sendSuccess, sendError } from '../utils/response';
 import { generateToken } from '../config/jwt';
 

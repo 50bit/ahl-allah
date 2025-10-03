@@ -4,7 +4,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: ahl-allah-postgres-dev
+    container_name: ahl-allah-db-dev
     restart: unless-stopped
     environment:
       POSTGRES_DB: ahl_allah_db
@@ -21,7 +21,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: ahl-allah-app-dev
+    container_name: ahl-allah-server-dev
     restart: unless-stopped
     ports:
       - "60772:60772"

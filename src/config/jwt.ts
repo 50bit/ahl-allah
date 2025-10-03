@@ -32,11 +32,8 @@ export const verifyToken = (token: string): JwtPayload => {
     audience: JWT_AUDIENCE
   }) as JwtPayload;
 };
-<<<<<<< Current (Your changes)
-=======
 
 export const generateRefreshToken = (): string => {
   // Use crypto random string as opaque refresh token
   return crypto.randomBytes(48).toString('hex');
 };
->>>>>>> Incoming (Background Agent changes)
