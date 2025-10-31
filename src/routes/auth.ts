@@ -9,7 +9,7 @@ import { validateEmail, validatePassword, validateRequired, validatePhoneNumber 
 import { UserRole, EjazaEnum, Language, AgeGroup, HefzMethod } from '../types';
 import { sendEmail } from '../config/email';
 import { handleOAuthCallback, handleOAuthSuccess, handleOAuthFailure, checkNewUser } from '../middleware/oauth';
-import { sendSms } from '../config/sms';
+import { sendSms, MessageMethod, sendOtpMessage } from '../config/sms';
 import crypto from 'crypto';
 
 const router = Router();
@@ -507,7 +507,7 @@ const hashOtp = (otp: string): string => {
 
 router.post('/phone/request-otp', validateRequired(['phone']), async (req, res) => {
   try {
-    const { phone, purpose } = req.body as { phone: string; purpose?: 'login' | 'link' };
+    const { phone, purpose, method } = req.body as { phone: string; purpose?: 'login' | 'link'; method?: MessageMethod };
     const normalizedPhone = phone.toString().trim();
     if (!validatePhoneNumber(normalizedPhone)) {
       return sendError(res, 400, 'Invalid phone number');
@@ -551,7 +551,7 @@ router.post('/phone/request-otp', validateRequired(['phone']), async (req, res) 
       });
     }
 
-    const sent = await sendSms(normalizedPhone, `Your verification code is ${otp}. It expires in 5 minutes.`);
+    const sent = await sendOtpMessage(normalizedPhone, otp, method);
     if (!sent) {
       return sendError(res, 500, 'Failed to send OTP');
     }
