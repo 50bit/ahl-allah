@@ -4,7 +4,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: ahl-allah-db-dev
+    container_name: ahl-allah-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ahl_allah_db
@@ -13,15 +13,20 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
-      - ./scripts/setup-postgresql.sql:/docker-entrypoint-initdb.d/setup.sql
+      - postgres_data:/var/lib/postgresql/data
+      - ./ahl-allah-server/scripts/setup-postgresql.sql:/docker-entrypoint-initdb.d/setup.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Node.js Application (Development)
+  # Node.js Application
   app:
     build:
-      context: .
-      dockerfile: Dockerfile.dev
-    container_name: ahl-allah-server-dev
+      context: ./ahl-allah-server
+      dockerfile: Dockerfile
+    container_name: ahl-allah-server
     restart: unless-stopped
     ports:
       - "60772:60772"
@@ -48,7 +53,7 @@ services:
       
       # Server Configuration
       PORT: 60772
-      NODE_ENV: development
+      NODE_ENV: production
       SESSION_SECRET: your-session-secret-key
       
       # Frontend Configuration
@@ -57,20 +62,39 @@ services:
       # File Upload
       UPLOAD_PATH: ./uploads
       MAX_FILE_SIZE: 5242880
-      
-      # Phone Number Auth Configuration
-      TWILIO_ACCOUNT_SID: your_twilio_account_sid
-      TWILIO_AUTH_TOKEN: your_twilio_auth_token
-      TWILIO_PHONE_NUMBER: +1234567890
-      TWILIO_WHATSAPP_NUMBER: whatsapp:+14155238886
     volumes:
-      - .:/app
-      - /app/node_modules
-      - ./uploads:/app/uploads
+      - ./ahl-allah-server/uploads:/app/uploads
     depends_on:
-      - postgres
-    command: npm run dev
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:60772/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - ahl-allah-network
+
+  # React Client Application
+  client:
+    build:
+      context: ./ahl-allah-client
+      dockerfile: Dockerfile
+    container_name: ahl-allah-client
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - ahl-allah-network
+
+networks:
+  ahl-allah-network:
+    driver: bridge
 
 volumes:
-  postgres_dev_data:
+  postgres_data:
 
