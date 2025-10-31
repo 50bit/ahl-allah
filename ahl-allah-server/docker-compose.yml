@@ -57,17 +57,6 @@ services:
       # Frontend Configuration
       FRONTEND_URL: http://localhost:4200
       
-      # OAuth Configuration (Add your actual OAuth credentials)
-      GOOGLE_CLIENT_ID: your-google-client-id
-      GOOGLE_CLIENT_SECRET: your-google-client-secret
-      GOOGLE_CALLBACK_URL: http://localhost:60772/api/auth/google/callback
-      
-      APPLE_CLIENT_ID: your-apple-client-id
-      APPLE_TEAM_ID: your-apple-team-id
-      APPLE_KEY_ID: your-apple-key-id
-      APPLE_PRIVATE_KEY: your-apple-private-key
-      APPLE_CALLBACK_URL: http://localhost:60772/api/auth/apple/callback
-      
       # File Upload
       UPLOAD_PATH: ./uploads
       MAX_FILE_SIZE: 5242880
@@ -85,4 +74,3 @@ services:
 
 volumes:
   postgres_data:
-
